@@ -25,31 +25,66 @@ Paste a URL and Vole will scrape and store the content locally as markdown. Clip
 ## Architecture
 
 ### Frontend
-- **React** (modern, functional components with hooks)
-- **Markdown-first** — all user content is authored and stored as markdown
-- Real-time collaborative editing via CRDT-based sync
-- Rich link resolution with backlink graph maintained on the client
+- **React 19 + TypeScript** — functional components, concurrent features beneficial for sync state
+- **Vite** — fast dev server and ESM-native builds
+- **TanStack Router** — type-safe, file-based routing
+- **Zustand** — minimal state management alongside Yjs
+- **Tailwind CSS v4** — utility-first styling with no runtime overhead
+
+### Editor
+- **TipTap v2** (ProseMirror-based) for rich markdown editing
+- `@tiptap/extension-collaboration` — first-class Yjs integration for co-editing
+- `@tiptap/extension-collaboration-cursor` — live presence cursors per user
+- `@tiptap/extension-markdown` — markdown import/export
+- Custom extensions for `[[wiki-link]]` syntax and backlink resolution
 
 ### Offline First
-- All data is stored locally (IndexedDB via a structured adapter)
-- Reads and writes work without a network connection
-- Changes sync to peers and/or a server when connectivity is restored
-- Conflict resolution handled by the CRDT layer — no "who saved last" surprises
+- **Yjs** as the CRDT engine — conflict-free document model for all user content
+- **y-indexeddb** — persists Yjs documents to IndexedDB for offline reads/writes
+- **y-websocket** — syncs with the self-hosted server relay when online
+- **y-webrtc** — peer-to-peer sync fallback without a central relay
+- **Dexie.js** — ergonomic IndexedDB adapter for backlink index, metadata, and clip records
 
 ### Collaboration
-- Multiple users can edit the same plan or board simultaneously
-- Presence indicators show who is viewing or editing
-- Change history is preserved per document
+- Multiple users can edit the same plan or board simultaneously via Yjs CRDTs
+- Presence indicators (name, cursor position) via `@tiptap/extension-collaboration-cursor`
+- Self-hosted **y-websocket** server acts as the authoritative sync relay
+
+### Backend
+- **Node.js** runtime with **Hono** — lightweight, TypeScript-native HTTP framework
+- **y-websocket** server for document sync
+- **Better Auth** — open-source, self-hosted session-based auth
 
 ### Web Scraping / Clipping
-- Users submit a URL; the backend fetches and converts the page to markdown
-- Clipped content is stored locally and synced like any other document
-- External links within clipped content are preserved and resolvable
+- **Playwright** renders JS-heavy pages server-side (avoids CORS, handles SPAs)
+- **@mozilla/readability** strips navigation and ads before conversion
+- **Cheerio** as a lightweight fallback for static HTML pages
+- **Turndown** + `turndown-plugin-gfm` converts cleaned HTML to GFM markdown
+- Clipped content is stored as a Yjs document — linkable, backlink-tracked, offline-available
 
 ### Backlink Graph
-- Maintained incrementally as documents are created and edited
-- Stored locally and synced across collaborators
-- Exposed in the UI as a "linked from" panel on every plan and board
+- **remark** (unified ecosystem) parses markdown AST to extract `[[wiki-links]]` and `[label](url)` links
+- **remark-wiki-link** handles `[[Page Name]]` syntax
+- **gray-matter** parses frontmatter (title, tags, created date)
+- Backlink index stored in **Dexie.js** and synced as a `Y.Map` across collaborators
+- Updated incrementally on every document save; exposed as a "linked from" panel in the UI
+
+### Simplified Architecture Diagram
+
+```
+Browser
+├── TipTap Editor ←→ Yjs Doc ←→ y-indexeddb  (offline persistence)
+│                               ↕
+│                          y-webrtc            (p2p sync fallback)
+│                               ↕
+└── Dexie.js (backlink index, clip metadata, document metadata)
+
+Server
+├── Hono API
+│   ├── POST /clip   → Playwright → Readability → Turndown → markdown
+│   └── /auth        → Better Auth session management
+└── y-websocket      → authoritative document sync relay
+```
 
 ---
 
@@ -57,16 +92,18 @@ Paste a URL and Vole will scrape and store the content locally as markdown. Clip
 
 ```
 vole/
-├── app/                  # React application
-│   ├── components/       # Shared UI components
-│   ├── editor/           # Markdown editor with link resolution
-│   ├── graph/            # Backlink graph logic
-│   ├── sync/             # Offline-first sync layer (CRDT)
-│   └── clipper/          # Web clipping integration
-├── server/               # Lightweight backend
-│   ├── api/              # REST or GraphQL endpoints
-│   └── scraper/          # URL fetch and markdown conversion
-└── shared/               # Types and utilities shared by app and server
+├── app/                  # React 19 + Vite frontend
+│   ├── components/       # Shared UI components (Tailwind)
+│   ├── editor/           # TipTap editor, wiki-link extension, backlink panel
+│   ├── graph/            # Backlink index (Dexie.js) and graph UI
+│   ├── sync/             # Yjs setup, y-indexeddb, y-websocket, y-webrtc providers
+│   ├── routes/           # TanStack Router file-based routes
+│   └── store/            # Zustand stores for UI state
+├── server/               # Node.js + Hono backend
+│   ├── routes/           # Hono route handlers (clip, auth)
+│   ├── scraper/          # Playwright → Readability → Turndown pipeline
+│   └── sync/             # y-websocket server setup
+└── shared/               # TypeScript types and utilities (app + server)
 ```
 
 ---
@@ -75,11 +112,17 @@ vole/
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Content format | Markdown | Portable, readable, version-friendly |
-| Sync strategy | CRDT (e.g. Yjs or Automerge) | Offline-first, conflict-free merging |
-| Local storage | IndexedDB | Large capacity, structured, async |
-| Collaboration transport | WebSocket + WebRTC (peer fallback) | Low-latency, works without a central relay |
-| Web clipping | Server-side fetch + turndown | Consistent rendering, avoids CORS |
+| Content format | Markdown (GFM + `[[wiki-links]]`) | Portable, readable, version-friendly |
+| CRDT engine | **Yjs** | Largest ecosystem, native TipTap integration |
+| Editor | **TipTap v2** | Best Yjs + markdown + extensibility combination |
+| Local persistence | **y-indexeddb** + **Dexie.js** | Yjs docs in y-indexeddb; metadata/index in Dexie |
+| Collaboration transport | **y-websocket** (server) + **y-webrtc** (p2p fallback) | Low-latency, works without central relay |
+| Collab backend | Self-hosted **y-websocket** | Data ownership aligns with offline-first philosophy |
+| HTTP backend | **Hono** on Node.js | Lightweight, TypeScript-native, edge-compatible |
+| Auth | **Better Auth** | Open-source, self-hosted, no vendor lock-in |
+| Web clipping | **Playwright** → **Readability** → **Turndown** | Best fidelity for real-world pages including SPAs |
+| Backlink parsing | **remark** + **remark-wiki-link** | Unified ecosystem, extensible AST pipeline |
+| Frontend build | **Vite** + **TanStack Router** | Fast builds, type-safe routing |
 
 ---
 
