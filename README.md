@@ -52,6 +52,7 @@ Paste a URL and Vole will scrape and store the content locally as markdown. Clip
 
 ### Backend
 - **Node.js** runtime with **Hono** — lightweight, TypeScript-native HTTP framework
+- **@hono/zod-openapi** — define routes with Zod schemas, auto-generate OpenAPI 3.x spec
 - **y-websocket** server for document sync
 - **Better Auth** — open-source, self-hosted session-based auth
 
@@ -104,7 +105,7 @@ vole/
 │   ├── routes/           # Hono route handlers (clip, auth)
 │   ├── scraper/          # Playwright → Readability → Turndown pipeline
 │   └── sync/             # y-websocket server setup
-├── shared/               # TypeScript types and utilities (not deployed; consumed via TS project references)
+├── shared/               # TypeScript types, Zod schemas, and utilities (consumed via TS project references)
 ├── package.json          # Root workspace (workspaces: ["app", "server", "shared"])
 └── turbo.json            # Build pipeline: shared builds first, app and server build in parallel
 ```
@@ -143,6 +144,9 @@ Two independent CI/CD jobs, each triggered by path filters:
 | Frontend deploy | **Vercel / Cloudflare Pages** | Static Vite output, free tier, CDN-distributed |
 | Backend deploy | **Railway / Fly.io** (Dockerfile) | Always-on Node.js, supports WebSockets |
 | Release strategy | Path-filtered CI jobs | `shared/**` changes trigger both pipelines independently |
+| TypeScript | Strict mode + project references | `strict: true` everywhere; `shared/` is a composite project |
+| Validation | **Zod** + `@hono/zod-openapi` | Schemas in `shared/`; server generates OpenAPI spec automatically |
+| Linting & formatting | **Biome** | Single Rust-based tool replaces ESLint + Prettier; one `biome.json` at root |
 
 ---
 
