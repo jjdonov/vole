@@ -90,21 +90,36 @@ Server
 
 ## Project Structure (planned)
 
+Vole is a monorepo managed with **npm workspaces** and **Turborepo**. The frontend and backend are independent packages that deploy to separate targets.
+
 ```
 vole/
-├── app/                  # React 19 + Vite frontend
+├── app/                  # React 19 + Vite — deploys to Vercel / Cloudflare Pages
 │   ├── components/       # Shared UI components (Tailwind)
 │   ├── editor/           # TipTap editor, wiki-link extension, backlink panel
 │   ├── graph/            # Backlink index (Dexie.js) and graph UI
 │   ├── sync/             # Yjs setup, y-indexeddb, y-websocket, y-webrtc providers
 │   ├── routes/           # TanStack Router file-based routes
 │   └── store/            # Zustand stores for UI state
-├── server/               # Node.js + Hono backend
+├── server/               # Node.js + Hono — deploys to Railway / Fly.io (Docker)
 │   ├── routes/           # Hono route handlers (clip, auth)
 │   ├── scraper/          # Playwright → Readability → Turndown pipeline
 │   └── sync/             # y-websocket server setup
-└── shared/               # TypeScript types and utilities (app + server)
+├── shared/               # TypeScript types and utilities (not deployed; consumed via TS project references)
+├── package.json          # Root workspace (workspaces: ["app", "server", "shared"])
+└── turbo.json            # Build pipeline: shared builds first, app and server build in parallel
 ```
+
+### Release pipelines
+
+Two independent CI/CD jobs, each triggered by path filters:
+
+| Job | Trigger | Deploys to |
+|---|---|---|
+| `deploy-app` | changes in `app/**` or `shared/**` | Vercel / Cloudflare Pages |
+| `deploy-server` | changes in `server/**` or `shared/**` | Railway / Fly.io (container) |
+
+`turbo run build --filter=app...` and `--filter=server...` ensure each job builds only what it needs, including `shared` as a dependency.
 
 ---
 
@@ -123,6 +138,11 @@ vole/
 | Web clipping | **Playwright** → **Readability** → **Turndown** | Best fidelity for real-world pages including SPAs |
 | Backlink parsing | **remark** + **remark-wiki-link** | Unified ecosystem, extensible AST pipeline |
 | Frontend build | **Vite** + **TanStack Router** | Fast builds, type-safe routing |
+| Monorepo tooling | **npm workspaces** + **Turborepo** | Built into npm 7+, Turborepo handles build order and caching |
+| Shared code | **TypeScript project references** | No build step needed; types resolve directly across packages |
+| Frontend deploy | **Vercel / Cloudflare Pages** | Static Vite output, free tier, CDN-distributed |
+| Backend deploy | **Railway / Fly.io** (Dockerfile) | Always-on Node.js, supports WebSockets |
+| Release strategy | Path-filtered CI jobs | `shared/**` changes trigger both pipelines independently |
 
 ---
 
