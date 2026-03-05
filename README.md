@@ -28,7 +28,7 @@ Paste a URL and Vole will scrape and store the content locally as markdown. Clip
 - **React 19 + TypeScript** — functional components, concurrent features beneficial for sync state
 - **Vite** — fast dev server and ESM-native builds
 - **TanStack Router** — type-safe, file-based routing
-- **Zustand** — minimal state management alongside Yjs
+- **React built-ins** (`useState`, `useContext`) — document state is owned by Yjs, metadata by Dexie; little left for a global store
 - **Tailwind CSS v4** — utility-first styling with no runtime overhead
 
 ### Editor
@@ -100,7 +100,6 @@ vole/
 │   ├── graph/            # Backlink index (Dexie.js) and graph UI
 │   ├── sync/             # Yjs setup, y-indexeddb, y-websocket, y-webrtc providers
 │   ├── routes/           # TanStack Router file-based routes
-│   └── store/            # Zustand stores for UI state
 ├── server/               # Node.js + Hono — deploys to Railway / Fly.io (Docker)
 │   ├── routes/           # Hono route handlers (clip, auth)
 │   ├── scraper/          # Playwright → Readability → Turndown pipeline
@@ -138,6 +137,7 @@ Two independent CI/CD jobs, each triggered by path filters:
 | Web clipping | **Playwright** → **Readability** → **Turndown** | Best fidelity for real-world pages including SPAs |
 | Backlink parsing | **remark** + **remark-wiki-link** | Unified ecosystem, extensible AST pipeline |
 | Frontend build | **Vite** + **TanStack Router** | Fast builds, type-safe routing |
+| Client state | React `useState` / `useContext` | Yjs + Dexie cover the heavy state; no global store needed upfront |
 | Monorepo tooling | **npm workspaces** + **Turborepo** | Built into npm 7+, Turborepo handles build order and caching |
 | Shared code | **TypeScript project references** | No build step needed; types resolve directly across packages |
 | Frontend deploy | **Vercel / Cloudflare Pages** | Static Vite output, free tier, CDN-distributed |
