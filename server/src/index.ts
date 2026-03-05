@@ -12,7 +12,7 @@ app.doc("/openapi.json", {
   info: { title: "Vole API", version: "0.0.0" },
 })
 
-const port = Number(process.env.PORT ?? 3000)
+const port = Number(process.env.PORT ?? 3001)
 
 const server = serve({ fetch: app.fetch, port }, () => {
   console.log(`API server running on http://localhost:${port}`)

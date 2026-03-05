@@ -1,6 +1,7 @@
 {
   "name": "vole",
   "private": true,
+  "packageManager": "npm@10.9.4",
   "workspaces": ["app", "server", "shared"],
   "scripts": {
     "dev": "turbo run dev",

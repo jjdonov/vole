@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Collaboration from "@tiptap/extension-collaboration"
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor"
+import { Markdown } from "tiptap-markdown"
 import type { SyncProviders } from "../sync/providers"
 import type { UserPresence } from "@vole/shared/types"
 
@@ -14,6 +15,7 @@ export function Editor({ sync, user }: EditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: false }),
+      Markdown,
       Collaboration.configure({ document: sync.doc }),
       CollaborationCursor.configure({
         provider: sync.websocket,

@@ -21,7 +21,7 @@ export async function clipUrl(url: string): Promise<ClipResponse> {
   let title: string
   let markdown: string
 
-  if (article) {
+  if (article?.title && article?.content) {
     title = article.title
     markdown = turndown.turndown(article.content)
   } else {

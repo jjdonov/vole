@@ -11,7 +11,7 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "outputs": []
+      "outputs": ["dist/**", "*.tsbuildinfo"]
     },
     "lint": {
       "outputs": []
