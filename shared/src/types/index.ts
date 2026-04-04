@@ -1,7 +1,6 @@
 export interface Document {
   id: string
   title: string
-  content: string
   type: "plan" | "board" | "clip"
   createdAt: number
   updatedAt: number

@@ -1,28 +1,26 @@
-import { useEditor, EditorContent } from "@tiptap/react"
+import { EditorContent, useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Collaboration from "@tiptap/extension-collaboration"
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor"
 import { Markdown } from "tiptap-markdown"
-import type { SyncProviders } from "../sync/providers"
-import type { UserPresence } from "@vole/shared/types"
+import type * as Y from "yjs"
 
 interface EditorProps {
-  sync: SyncProviders
-  user: UserPresence
+  doc: Y.Doc
 }
 
-export function Editor({ sync, user }: EditorProps) {
+export function Editor({ doc }: EditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: false }),
       Markdown,
-      Collaboration.configure({ document: sync.doc }),
-      CollaborationCursor.configure({
-        provider: sync.websocket,
-        user: { name: user.name, color: user.color },
-      }),
+      Collaboration.configure({ document: doc }),
     ],
   })
 
-  return <EditorContent editor={editor} className="prose max-w-none p-4" />
+  return (
+    <EditorContent
+      editor={editor}
+      className="prose prose-gray max-w-none px-8 py-4 min-h-full outline-none"
+    />
+  )
 }
